@@ -1,4 +1,4 @@
-#%%
+
 import configparser
 from datetime import datetime
 import os
@@ -7,7 +7,6 @@ from pyspark.sql.types import StructField, StructType, StringType, IntegerType, 
 from pyspark.sql.functions import udf, col, monotonically_increasing_id
 from pyspark.sql.functions import year, month, dayofmonth, hour, weekofyear, date_format
 
-#%%
 config = configparser.ConfigParser()
 config.read('dl.cfg')
 
@@ -15,7 +14,6 @@ os.environ['AWS_ACCESS_KEY_ID'] = config["AWS"]['AWS_ACCESS_KEY_ID']
 os.environ['AWS_SECRET_ACCESS_KEY'] = config["AWS"]['AWS_SECRET_ACCESS_KEY']
 os.environ['jdk.xml.entityExpansionLimit']= '0' 
 
-#%%
 song_schema = StructType([
     StructField('artist_id', StringType()),
     StructField('artist_latitude', DoubleType()),
@@ -29,8 +27,13 @@ song_schema = StructType([
     StructField('year', IntegerType())
 ])
 
-#%%
 def create_spark_session():
+    """
+    This function creates a configured PySpark Session to work with Spark in Python
+    
+    Returns:
+        SparkSession: Return a Spark Session object able to work throughout the code.
+    """
     spark = SparkSession \
         .builder \
         .config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:3.2.0") \
@@ -38,8 +41,16 @@ def create_spark_session():
         .getOrCreate()
     return spark
 
-#%%
 def process_song_data(spark, input_data, output_data):
+    """
+    This function is responsible to read transform and load `JSON` files related to songs
+    in `input_data` and save in `output_data`.
+
+    Args:
+        spark (SparkSession): SparkSession object create in in `create_spark_session()`.
+        input_data (str): Directory path which has the input data.
+        output_data (str): Directory path wich will save the output data.
+    """
     # get filepath to song data file
     song_data = f"{input_data}song-data/*/*/*/*.json"
 
@@ -64,8 +75,16 @@ def process_song_data(spark, input_data, output_data):
     # write artists table to parquet files
     artists_table.write.parquet(f"{output_data}artists.parquet")
 
-#%%
 def process_log_data(spark, input_data, output_data):
+    """
+    This function is responsible to read transform and load `JSON` files related to logs
+    in `input_data` and save in `output_data`.
+
+    Args:
+        spark (SparkSession): SparkSession object create in in `create_spark_session()`.
+        input_data (str): Directory path which has the input data.
+        output_data (str): Directory path wich will save the output data.
+    """
     # get filepath to log data file
     log_data = f"{input_data}log-data/*.json"
 
@@ -158,11 +177,12 @@ def process_log_data(spark, input_data, output_data):
     # write songplays table to parquet files partitioned by year and month
     songplays_table.write.partitionBy("year", 'month').parquet(f"{output_data}songplays.parquet")
 
-#%%
 def main():
+    """Main function, which call all other function in this script.
+    """
     spark = create_spark_session()
 
-    env = os.environ.get('LOCAL', 'PRD').upper()
+    env = os.environ.get('ENV', 'PRD').upper()
     data_config = f'{env}_DATA'
     input_data = config[data_config]['input_data']
     output_data = config[data_config]['output_data']
@@ -170,6 +190,5 @@ def main():
     process_song_data(spark, input_data, output_data)    
     process_log_data(spark, input_data, output_data)
 
-#%%
 if __name__ == "__main__":
     main()
