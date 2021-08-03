@@ -11,8 +11,8 @@ from pyspark.sql.functions import year, month, dayofmonth, hour, weekofyear, dat
 config = configparser.ConfigParser()
 config.read('dl.cfg')
 
-os.environ['AWS_ACCESS_KEY_ID']=config["AWS"]['AWS_ACCESS_KEY_ID']
-os.environ['AWS_SECRET_ACCESS_KEY']=config["AWS"]['AWS_SECRET_ACCESS_KEY']
+os.environ['AWS_ACCESS_KEY_ID'] = config["AWS"]['AWS_ACCESS_KEY_ID']
+os.environ['AWS_SECRET_ACCESS_KEY'] = config["AWS"]['AWS_SECRET_ACCESS_KEY']
 
 #%%
 song_schema = StructType([
@@ -134,9 +134,9 @@ def process_log_data(spark, input_data, output_data):
     song = song_df.alias('song')
 
     songplays_table = df.join(song, 
-        (df.artist == song.artist_name) &
-        (df.song == song.title),
-        'inner'
+        on=[df.artist == song.artist_name,
+            df.song == song.title],
+        how='inner'
     )
 
     songplays_table = songplays_table.select(
@@ -160,12 +160,10 @@ def process_log_data(spark, input_data, output_data):
 def main():
     spark = create_spark_session()
 
-    if os.environ.get('ENV') == 'local':
-        input_data = "./data/input/"
-        output_data = "./data/output/"
-    else:
-        input_data = "s3a://udacity-dend/"
-        output_data = "s3a://udacity-datalake-output/"
+    env = os.environ.get('ENV', 'PRD').upper()
+    data_config = f'{env}_DATA'
+    input_data = config[data_config]['input_data']
+    output_data = config[data_config]['output_data']
     
     process_song_data(spark, input_data, output_data)    
     process_log_data(spark, input_data, output_data)
