@@ -13,6 +13,7 @@ config.read('dl.cfg')
 
 os.environ['AWS_ACCESS_KEY_ID'] = config["AWS"]['AWS_ACCESS_KEY_ID']
 os.environ['AWS_SECRET_ACCESS_KEY'] = config["AWS"]['AWS_SECRET_ACCESS_KEY']
+os.environ['jdk.xml.entityExpansionLimit']= '0' 
 
 #%%
 song_schema = StructType([
@@ -32,14 +33,15 @@ song_schema = StructType([
 def create_spark_session():
     spark = SparkSession \
         .builder \
-        .config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:2.7.0") \
+        .config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:3.2.0") \
+        .config("spark.hadoop.fs.s3a.multipart.size", "104857600") \
         .getOrCreate()
     return spark
 
 #%%
 def process_song_data(spark, input_data, output_data):
     # get filepath to song data file
-    song_data = f"{input_data}/song-data/*/*/*/*.json"
+    song_data = f"{input_data}song-data/*/*/*/*.json"
 
     # read song data file
     df = spark.read.json(song_data, schema=song_schema)
@@ -65,7 +67,7 @@ def process_song_data(spark, input_data, output_data):
 #%%
 def process_log_data(spark, input_data, output_data):
     # get filepath to log data file
-    log_data = f"{input_data}/log-data/*.json"
+    log_data = f"{input_data}log-data/*.json"
 
     log_schema = StructType([
         StructField('artist', StringType()),
@@ -126,7 +128,7 @@ def process_log_data(spark, input_data, output_data):
     time_table.write.partitionBy("year", 'month').parquet(f"{output_data}time_table.parquet")
 
     # read in song data to use for songplays table
-    song_df = spark.read.json(f"{input_data}/song-data/*/*/*/*.json", schema=song_schema)
+    song_df = spark.read.json(f"{input_data}song-data/*/*/*/*.json", schema=song_schema)
 
     # extract columns from joined song and log datasets to create songplays table 
     #https://sparkbyexamples.com/pyspark/pyspark-join-explained-with-examples/
@@ -160,7 +162,7 @@ def process_log_data(spark, input_data, output_data):
 def main():
     spark = create_spark_session()
 
-    env = os.environ.get('ENV', 'PRD').upper()
+    env = os.environ.get('LOCAL', 'PRD').upper()
     data_config = f'{env}_DATA'
     input_data = config[data_config]['input_data']
     output_data = config[data_config]['output_data']
