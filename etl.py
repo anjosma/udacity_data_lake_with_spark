@@ -123,7 +123,7 @@ def process_log_data(spark, input_data, output_data):
         .withColumn('weekofyear', weekofyear(time_table.datetime))
     
     # write time table to parquet files partitioned by year and month
-    #time_table.write.partitionBy("year", 'month').parquet(f"{output_data}time_table.parquet")
+    time_table.write.partitionBy("year", 'month').parquet(f"{output_data}time_table.parquet")
 
     # read in song data to use for songplays table
     song_df = spark.read.json(f"{input_data}/song-data/*/*/*/*.json", schema=song_schema)
